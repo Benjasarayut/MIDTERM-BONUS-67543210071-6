@@ -1,12 +1,25 @@
-const repo = require('../../data/repositories/bookRepository');
+const repository = require('../../data/repositories/bookRepository');
+
 class BookService {
     async getAllBooks(status) {
-        const b = await repo.getAll(status);
-        return { books: b, statistics: { total: b.length, available: b.filter(x => x.status==='available').length, borrowed: b.filter(x => x.status==='borrowed').length } };
+        const books = await repository.getAll(status);
+        const statistics = await repository.getStatistics();
+        return { books, statistics };
     }
-    async createBook(d) { return await repo.create(d); }
-    async borrowBook(id) { return await repo.update(id, { status: 'borrowed' }); }
-    async returnBook(id) { return await repo.update(id, { status: 'available' }); }
-    async deleteBook(id) { return await repo.delete(id); }
+
+    async createBook(data) {
+        return await repository.create(data);
+    }
+
+    // 🌟 🌟 🌟 เพิ่มบรรทัดนี้ลงไป (สะพานที่ขาดอยู่) 🌟 🌟 🌟
+    async updateBook(id, data) {
+        if (!id) throw new Error('ID is required');
+        return await repository.update(id, data);
+    }
+
+    async borrowBook(id) { return await repository.updateStatus(id, 'borrowed'); }
+    async returnBook(id) { return await repository.updateStatus(id, 'available'); }
+    async deleteBook(id) { return await repository.delete(id); }
 }
+
 module.exports = new BookService();

@@ -1,22 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const ctrl = require('../controllers/bookController');
+const bookController = require('../controllers/bookController');
 
-// --- 📖 ส่วนของการอ่านข้อมูล (Read) ---
-router.get('/', ctrl.getAllBooks);
+router.get('/', bookController.getAllBooks);
+router.post('/', bookController.createBook);
 
-// --- ➕ ส่วนของการเพิ่มข้อมูล (Create) ---
-router.post('/', ctrl.createBook);
+// ✅ ต้องเป็นชื่อ updateBook ให้ตรงกับ Controller
+router.put('/:id', bookController.updateBook); 
 
-// --- 📝 ส่วนของการแก้ไขข้อมูล (Update Metadata) ---
-// ✅ เพิ่มบรรทัดนี้ลงไปและใช้ 'ctrl' ให้ถูกต้อง
-router.patch('/:id/metadata', ctrl.updateBookMetadata); 
+// ✅ เช็ค 2 บรรทัดนี้ให้ดี (บรรทัดที่ 13 ที่มึงพังอยู่)
+router.patch('/:id/borrow', bookController.borrowBook);
+router.patch('/:id/return', bookController.returnBook);
 
-// --- 🔄 ส่วนของการเปลี่ยนสถานะหนังสือ (Update Status) ---
-router.patch('/:id/borrow', ctrl.borrowBook);
-router.patch('/:id/return', ctrl.returnBook);
-
-// --- ❌ ส่วนของการลบข้อมูล (Delete) ---
-router.delete('/:id', ctrl.deleteBook);
+router.delete('/:id', bookController.deleteBook);
 
 module.exports = router;

@@ -1,12 +1,83 @@
-let books = [{ id: 1, title: "Clean Code", author: "Robert C. Martin", isbn: "9780132350884", status: "available" }];
+const db = require('../database/connection');
+
 class BookRepository {
-    async getAll(s) { return s ? books.filter(b => b.status === s) : books; }
-    async create(d) { const n = { id: Date.now(), ...d, status: 'available' }; books.push(n); return n; }
-    async update(id, d) {
-        const i = books.findIndex(b => b.id == id);
-        if (i !== -1) books[i] = { ...books[i], ...d };
-        return books[i];
+    getAll(status) {
+        return new Promise((resolve, reject) => {
+            let query = 'SELECT * FROM books';
+            let params = [];
+            if (status && status !== 'all') {
+                query += ' WHERE status = ?';
+                params.push(status);
+            }
+            db.all(query, params, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
     }
-    async delete(id) { books = books.filter(b => b.id != id); return true; }
+
+    getStatistics() {
+        return new Promise((resolve, reject) => {
+            const query = `
+                SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available,
+                    SUM(CASE WHEN status = 'borrowed' THEN 1 ELSE 0 END) as borrowed
+                FROM books
+            `;
+            db.get(query, [], (err, row) => {
+                if (err) reject(err);
+                else resolve(row || { total: 0, available: 0, borrowed: 0 });
+            });
+        });
+    }
+
+    create(book) {
+        return new Promise((resolve, reject) => {
+            const { title, author, isbn } = book;
+            db.run('INSERT INTO books (title, author, isbn) VALUES (?, ?, ?)', 
+                [title, author, isbn], function(err) {
+                if (err) reject(err);
+                else resolve({ id: this.lastID, ...book, status: 'available' });
+            });
+        });
+    }
+
+    update(id, data) {
+        return new Promise((resolve, reject) => {
+            const { title, author, isbn } = data;
+            db.run(
+                'UPDATE books SET title = ?, author = ?, isbn = ? WHERE id = ?',
+                [title, author, isbn, id],
+                function(err) {
+                    if (err) reject(err);
+                    else resolve({ id, ...data });
+                }
+            );
+        });
+    }
+
+    updateStatus(id, status) {
+        return new Promise((resolve, reject) => {
+            db.run(
+                'UPDATE books SET status = ? WHERE id = ?',
+                [status, id],
+                function(err) {
+                    if (err) reject(err);
+                    else resolve({ id, status });
+                }
+            );
+        });
+    }
+
+    delete(id) {
+        return new Promise((resolve, reject) => {
+            db.run('DELETE FROM books WHERE id = ?', [id], function(err) {
+                if (err) reject(err);
+                else resolve(true);
+            });
+        });
+    }
 }
+
 module.exports = new BookRepository();

@@ -1,64 +1,116 @@
-// ✅ เพิ่มตัวแปร global เพื่อเก็บข้อมูลหนังสือทั้งหมดและ ID ที่กำลังแก้ไข
+// ✅ เก็บข้อมูลและสถานะการแก้ไข
 let allBooks = []; 
 let editingId = null; 
 
+// --- 🎨 ส่วนจัดการ Theme ---
+const THEMES = ['light', 'dark', 'green'];
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('ui-theme', theme);
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.innerText = theme === 'dark' ? '🌙' : theme === 'green' ? '🟢' : '🌓';
+}
+function cycleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme') || 'light';
+    const idx = THEMES.indexOf(cur);
+    applyTheme(THEMES[(idx + 1) % THEMES.length]);
+}
+function initTheme() {
+    const saved = localStorage.getItem('ui-theme');
+    if (saved) { applyTheme(saved); return; }
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(prefersDark ? 'dark' : 'light');
+}
+
+// --- 🔔 ส่วนจัดการ Toast (การแจ้งเตือน) ---
+function showToast(message, type = 'info', ms = 2400) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const t = document.createElement('div');
+    t.className = `toast toast--${type}`;
+    t.innerHTML = `<span class="icon">${type === 'success' ? '✅' : type === 'danger' ? '⚠️' : 'ℹ️'}</span><div class="toast-text">${message}</div><button class="close">✕</button>`;
+    container.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('toast--visible'));
+    const remove = () => { t.classList.remove('toast--visible'); setTimeout(() => t.remove(), 400); };
+    t.querySelector('.close').onclick = remove;
+    setTimeout(remove, ms);
+}
+
+// --- 🚀 เริ่มต้นทำงานเมื่อโหลดหน้าเว็บ ---
 document.addEventListener('DOMContentLoaded', () => {
     initUI();
+    initTheme();
     loadBooks();
 });
 
 function initUI() {
     const modal = document.getElementById('book-modal');
-    const modalTitle = modal.querySelector('h2'); // สมมติว่าใน Modal มี h2
     const bookForm = document.getElementById('book-form');
-    
-    // ✅ เปิด Modal สำหรับเพิ่มหนังสือใหม่ (ปรับปรุง: focus + keyboard accessibility)
     const addBtn = document.getElementById('add-book-btn');
     const closeBtn = document.getElementById('close-modal');
+    const modalTitle = document.querySelector('#book-modal h2');
 
-    function modalKeyHandler(e) {
-        if (e.key === 'Escape') return closeModal();
-        if (e.key === 'Tab') {
-            const focusables = Array.from(modal.querySelectorAll('a[href], button:not([disabled]), textarea, input:not([disabled]), select, [tabindex]:not([tabindex="-1"])'))
-                .filter(el => el.offsetParent !== null);
-            if (focusables.length === 0) return;
-            const idx = focusables.indexOf(document.activeElement);
-            if (e.shiftKey) {
-                if (idx === 0) { e.preventDefault(); focusables[focusables.length - 1].focus(); }
-            } else {
-                if (idx === focusables.length - 1) { e.preventDefault(); focusables[0].focus(); }
-            }
-        }
+    // 1. เปิด Modal สำหรับเพิ่มใหม่
+    if (addBtn) {
+        addBtn.onclick = () => {
+            editingId = null; // รีเซ็ตเป็นสถานะ "เพิ่มใหม่"
+            if (modalTitle) modalTitle.innerText = "🌈 Add New Book";
+            bookForm.reset();
+            openModal();
+        };
     }
+
+    // 2. ปิด Modal
+    if (closeBtn) closeBtn.onclick = closeModal;
+    window.onclick = (e) => { if (e.target === modal) closeModal(); };
 
     function openModal() {
         modal.style.display = 'flex';
+        requestAnimationFrame(() => modal.classList.add('show'));
         document.body.style.overflow = 'hidden';
-        document.addEventListener('keydown', modalKeyHandler);
-        const first = modal.querySelector('input, button, [tabindex]');
-        first && first.focus();
     }
 
     function closeModal() {
-        modal.style.display = 'none';
+        modal.classList.remove('show');
+        setTimeout(() => { modal.style.display = 'none'; }, 300);
         document.body.style.overflow = '';
-        document.removeEventListener('keydown', modalKeyHandler);
-        addBtn.focus();
     }
 
-    addBtn.onclick = () => {
-        editingId = null; // รีเซ็ตสถานะเป็น "เพิ่มใหม่"
-        if(modalTitle) modalTitle.innerText = "🌈 Add New Book";
-        bookForm.reset();
-        openModal();
+    // 3. จัดการ Form Submit (ทั้ง Add และ Edit)
+    bookForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const data = {
+            title: document.getElementById('title').value.trim(),
+            author: document.getElementById('author').value.trim(),
+            isbn: document.getElementById('isbn').value.trim()
+        };
+
+        const saveBtn = document.getElementById('save-btn');
+        try {
+            saveBtn.disabled = true;
+            if (editingId) {
+                // 📝 กรณีแก้ไข: เรียก updateBook
+                await api.updateBook(editingId, data);
+                showToast(`Updated "${data.title}"`, 'success');
+            } else {
+                // ➕ กรณีเพิ่มใหม่: เรียก createBook
+                await api.createBook(data);
+                showToast(`Added "${data.title}"`, 'success');
+            }
+            closeModal();
+            await loadBooks(); // โหลดใหม่ทันทีเพื่อให้เห็นการเปลี่ยนแปลง
+        } catch (err) {
+            showToast(err.message, 'danger');
+        } finally {
+            saveBtn.disabled = false;
+        }
     };
 
-    closeBtn.onclick = closeModal;
+    // 4. ปุ่ม Theme Toggle
+    const themeBtn = document.getElementById('theme-toggle');
+    if (themeBtn) themeBtn.onclick = cycleTheme;
 
-    // ปิดเมื่อคลิกพื้นที่นอก modal-content
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-
-    // ✅ Filter Tabs
+    // 5. ตัวกรองหนังสือ (Tabs)
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.onclick = (e) => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -67,94 +119,91 @@ function initUI() {
         };
     });
 
-    // ✅ Event Delegation สำหรับปุ่มในการ์ด (เพิ่มส่วนของ Edit)
+    // 6. Event Delegation สำหรับปุ่มในการ์ดหนังสือ
     document.getElementById('book-list').onclick = async (e) => {
         const id = e.target.dataset.id;
         if (!id) return;
 
-        // 1. ปุ่มยืม/คืน
-        if (e.target.classList.contains('btn-action')) {
-            const act = e.target.dataset.action;
-            if (act === 'borrow') await api.borrowBook(id);
-            else await api.returnBook(id);
-            loadBooks();
-        } 
-        // 2. ปุ่มลบ
-        else if (e.target.classList.contains('btn-del')) {
-            if(confirm('Are you sure you want to delete this book?')) { 
-                await api.deleteBook(id); 
-                loadBooks(); 
-            }
-        }
-        // 🌟 3. ปุ่มแก้ไข (Edit) - เพิ่มใหม่
-        else if (e.target.classList.contains('btn-edit')) {
+        // ปุ่ม Edit 📝
+        if (e.target.classList.contains('btn-edit')) {
             const book = allBooks.find(b => b.id == id);
             if (book) {
                 editingId = id; // ตั้งค่า ID ที่กำลังแก้ไข
-                if(modalTitle) modalTitle.innerText = "📝 Edit Book Details";
+                if (modalTitle) modalTitle.innerText = "📝 Edit Book Details";
                 document.getElementById('title').value = book.title;
                 document.getElementById('author').value = book.author;
                 document.getElementById('isbn').value = book.isbn;
                 openModal();
             }
         }
-    };
-
-    // ✅ Form Submit (รองรับทั้ง Create และ Update)
-    bookForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const data = {
-            title: document.getElementById('title').value,
-            author: document.getElementById('author').value,
-            isbn: document.getElementById('isbn').value
-        };
-
-        if (editingId) {
-            // 📝 กรณีแก้ไขเล่มเดิม
-            await api.updateBookMetadata(editingId, data); 
-        } else {
-            // ➕ กรณีเพิ่มเล่มใหม่
-            await api.createBook(data);
+        // ปุ่ม Borrow/Return 📚
+        else if (e.target.classList.contains('btn-action')) {
+            const act = e.target.dataset.action;
+            try {
+                if (act === 'borrow') await api.borrowBook(id);
+                else await api.returnBook(id);
+                showToast(`${act === 'borrow' ? 'Borrowed' : 'Returned'} successfully`, 'success');
+                await loadBooks();
+            } catch (err) { showToast(err.message, 'danger'); }
         }
-
-        closeModal();
-        e.target.reset();
-        loadBooks();
+        // ปุ่ม Delete 🗑️
+        else if (e.target.classList.contains('btn-del')) {
+            if (confirm('Are you sure you want to delete this book?')) {
+                try {
+                    await api.deleteBook(id);
+                    showToast('Deleted successfully', 'info');
+                    await loadBooks();
+                } catch (err) { showToast(err.message, 'danger'); }
+            }
+        }
     };
 }
 
+// --- 📥 ส่วนโหลดข้อมูลจาก API ---
 async function loadBooks(status = 'all') {
+    const list = document.getElementById('book-list');
+    list.innerHTML = `<div class="loading">Loading library...</div>`;
+
     try {
-        const data = await api.getAllBooks(status);
-        allBooks = data.books; // ✅ เก็บข้อมูลลงตัวแปร global ไว้ใช้ตอนกด Edit
+        const result = await api.getAllBooks(status);
+        allBooks = result.books; // เก็บใส่ตัวแปร global เพื่อใช้ตอน Edit
 
-        // อัปเดตสถิติ
-        document.getElementById('stat-available').innerText = data.statistics.available;
-        document.getElementById('stat-borrowed').innerText = data.statistics.borrowed;
-        document.getElementById('stat-total').innerText = data.statistics.total;
+        // อัปเดตตัวเลข Dashboard (สถิติ)
+        document.getElementById('stat-available').innerText = result.statistics.available || 0;
+        document.getElementById('stat-borrowed').innerText = result.statistics.borrowed || 0;
+        document.getElementById('stat-total').innerText = result.statistics.total || 0;
 
-        const list = document.getElementById('book-list');
-        list.innerHTML = data.books.map(b => {
-            const initials = (b.title || '').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() || 'BK';
-            return `
-            <div class="book-card ${b.status}">
-                <div class="book-cover">${b.cover ? `<img src="${b.cover}" alt="cover" />` : `<span>${initials}</span>`}</div>
-                <div class="book-content">
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                        <h3 class="book-title">${b.title}</h3>
-                        <span class="status-badge ${b.status}">${b.status.toUpperCase()}</span>
-                    </div>
-                    <p class="book-info">👤 ${b.author}</p>
-                    <div class="card-actions">
-                        <button class="btn-edit" data-id="${b.id}">Edit 📝</button>
-                        <button class="btn-action" data-id="${b.id}" data-action="${b.status==='available'?'borrow':'return'}">
-                            ${b.status==='available'?'Borrow 📚':'Return ↩️'}
-                        </button>
-                        <button class="btn-del" data-id="${b.id}" aria-label="Delete ${b.title}">Delete 🗑️</button>
-                    </div>
+        renderBooks(allBooks);
+    } catch (e) {
+        list.innerHTML = `<div class="empty-state error">❌ Unable to connect to Server</div>`;
+    }
+}
+
+// --- 🖼️ ส่วนแสดงผล Card ลงหน้าเว็บ ---
+function renderBooks(books) {
+    const list = document.getElementById('book-list');
+    if (books.length === 0) {
+        list.innerHTML = `<div class="empty-state">No books found ✨</div>`;
+        return;
+    }
+
+    list.innerHTML = books.map((b, idx) => `
+        <div class="book-card ${b.status}">
+            <div class="book-cover"><span class="cover-num">${idx + 1}</span></div>
+            <div class="book-content">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3 class="book-title">${b.title}</h3>
+                    <span class="status-badge ${b.status}">${b.status.toUpperCase()}</span>
+                </div>
+                <p class="book-info">👤 ${b.author}</p>
+                <div class="card-actions">
+                    <button class="btn-edit" data-id="${b.id}">Edit 📝</button>
+                    <button class="btn-action" data-id="${b.id}" data-action="${b.status === 'available' ? 'borrow' : 'return'}">
+                        ${b.status === 'available' ? 'Borrow 📚' : 'Return ↩️'}
+                    </button>
+                    <button class="btn-del" data-id="${b.id}">Delete 🗑️</button>
                 </div>
             </div>
-            `;
-        }).join('');
-    } catch (e) { console.error("API Error", e); }
+        </div>
+    `).join('');
 }
