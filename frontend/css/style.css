@@ -1,23 +1,256 @@
-body { font-family: sans-serif; background: #f8fafc; padding: 40px 20px; color: #1e293b; }
-.container { max-width: 1000px; margin: 0 auto; }
-header { text-align: center; margin-bottom: 40px; }
-.header-main { display: flex; align-items: center; justify-content: center; gap: 15px; }
-.rainbow-icon { font-size: 3rem; }
-.statistics { display: flex; gap: 20px; margin-bottom: 40px; }
-.stat-card { background: white; flex: 1; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-.stat-card h3 { font-size: 2.5rem; color: #6366f1; }
-.toolbar { display: flex; justify-content: space-between; margin-bottom: 30px; }
-.btn-add { background: #6366f1; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; }
-.filter-tabs { display: flex; background: #e2e8f0; padding: 5px; border-radius: 10px; gap: 5px; }
-.tab-btn { border: none; background: transparent; padding: 8px 15px; cursor: pointer; border-radius: 6px; }
-.tab-btn.active { background: white; color: #6366f1; }
-.book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-.book-card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-.status-badge { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; margin-bottom: 15px; }
-.available { background: #dcfce7; color: #166534; }
-.borrowed { background: #fee2e2; color: #991b1b; }
-.modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal-content { background: white; padding: 40px; border-radius: 25px; width: 400px; position: relative; }
-.close-btn { position: absolute; right: 20px; top: 15px; font-size: 24px; cursor: pointer; }
-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
-.btn-save { width: 100%; background: #6366f1; color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; }
+/* 1. นำเข้าฟอนต์และตั้งค่าพื้นฐาน */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --primary: #6366f1;
+    --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    --bg-color: #f1f5f9;
+    --text-main: #1e293b;
+    --text-sub: #64748b;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --glass: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: radial-gradient(circle at top right, #f8fafc, #e2e8f0);
+    color: var(--text-main);
+    margin: 0;
+    padding: 2.5rem;
+    min-height: 100vh;
+}
+
+.container { max-width: 1200px; margin: 0 auto; }
+
+/* --- 2. Header & Brand Look --- */
+header {
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    padding: 3rem;
+    border-radius: 2.5rem;
+    text-align: center;
+    margin-bottom: 3.5rem;
+    box-shadow: var(--shadow);
+}
+
+header h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, #6366f1, #ec4899, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; /* ตัวหนังสือสายรุ้งแบบพรีเมียม */
+    margin: 0;
+    letter-spacing: -1.5px;
+}
+
+/* --- 3. Statistics: บล็อกตัวเลขขนาดใหญ่ --- */
+.statistics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 2.5rem 1.5rem;
+    border-radius: 2rem;
+    text-align: center;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(255,255,255,0.8);
+}
+
+.stat-card:hover { transform: translateY(-10px); }
+
+.stat-card h3 {
+    font-size: 4.5rem;
+    font-weight: 800;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+    line-height: 1;
+}
+
+.stat-card p {
+    color: var(--text-sub);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 0.75rem;
+}
+
+/* --- 4. Toolbar: จัดการปุ่ม Filter ให้สวย --- */
+.toolbar {
+    background: var(--glass);
+    padding: 1.25rem;
+    border-radius: 1.8rem;
+    margin-bottom: 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
+}
+
+.btn-add {
+    background: var(--primary-gradient);
+    color: white;
+    font-weight: 700;
+    padding: 1rem 1.8rem;
+    border: none;
+    border-radius: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+    transition: 0.3s;
+}
+
+.btn-add:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(99, 102, 241, 0.4); }
+
+.filter-tabs {
+    background: #f1f5f9;
+    padding: 0.4rem;
+    border-radius: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tab-btn {
+    border: none;
+    background: none;
+    padding: 0.7rem 1.4rem;
+    border-radius: 0.8rem;
+    font-weight: 700;
+    color: var(--text-sub);
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.tab-btn.active {
+    background: white;
+    color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* --- 5. Book Cards: Avatar Style --- */
+.book-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 2.25rem;
+}
+
+.book-card {
+    background: white;
+    border-radius: 2rem;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+    transition: all 0.4s ease;
+    border: 1px solid rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.book-card:hover { transform: translateY(-8px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1); }
+
+.book-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+
+.book-avatar {
+    width: 60px; height: 60px;
+    background: var(--primary-gradient);
+    color: white;
+    border-radius: 1.2rem;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1.5rem;
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.2);
+}
+
+.status-badge {
+    padding: 0.4rem 0.9rem;
+    border-radius: 0.8rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.status-badge.available { background: #dcfce7; color: #15803d; }
+.status-badge.borrowed { background: #fee2e2; color: #b91c1c; }
+
+.book-title { font-size: 1.4rem; font-weight: 800; color: var(--text-main); margin: 0; }
+.book-info { color: var(--text-sub); font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+
+/* --- 6. Buttons Inside Cards --- */
+.card-actions { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 0.75rem; margin-top: 1rem; }
+
+.btn-edit, .btn-action, .btn-del {
+    padding: 0.8rem; border-radius: 12px; border: none;
+    font-weight: 700; cursor: pointer; transition: 0.3s;
+}
+
+.btn-edit { background: #fff7ed; color: var(--warning); border: 1px solid #ffedd5; }
+.btn-action { background: var(--primary); color: white; }
+.btn-del { background: #fff1f2; color: var(--danger); border: 1px solid #ffe4e6; }
+
+.btn-edit:hover, .btn-action:hover, .btn-del:hover { transform: translateY(-3px); opacity: 0.9; }
+
+/* Borrow = vivid green */
+.btn-action[data-action="borrow"] {
+    background: linear-gradient(90deg, var(--success) 0%, #34d399 100%);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 10px 24px rgba(16,185,129,0.12);
+}
+
+.btn-action[data-action="borrow"]:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 18px 44px rgba(16,185,129,0.14);
+}
+
+/* Return / neutral style */
+.btn-action[data-action="return"] {
+    background: #f8fafc;
+    color: var(--text-main);
+    border: 1px solid rgba(2,6,23,0.05);
+    box-shadow: none;
+}
+.btn-action[data-action="return"]:hover { transform: translateY(-3px); }
+
+/* --- 7. Modal: Ultra Clean --- */
+.modal {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    display: none; align-items: center; justify-content: center;
+    position: fixed; inset: 0; z-index: 1000; padding: 2rem;
+}
+
+.modal-content {
+    background: white;
+    padding: 3rem;
+    border-radius: 2.5rem;
+    width: 100%; max-width: 480px;
+    box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.25);
+    animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.input-field { margin-bottom: 1.5rem; }
+.input-field label { display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-sub); font-size: 0.85rem; text-transform: uppercase; }
+.input-field input {
+    width: 100%; padding: 1rem; border-radius: 1rem; border: 2px solid #f1f5f9;
+    font-family: inherit; font-size: 1rem; outline: none; transition: 0.3s;
+}
+.input-field input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+
+.btn-save {
+    width: 100%; background: var(--primary-gradient); color: white;
+    padding: 1.1rem; border: none; border-radius: 1.2rem;
+    font-weight: 700; font-size: 1.1rem; cursor: pointer; margin-top: 1rem;
+}
