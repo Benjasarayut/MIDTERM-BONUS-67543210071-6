@@ -3,8 +3,11 @@
 # 📚 Library Management System (Midterm Bonus Project)
 ---
 📋 Project Information
+
 Student Name: นาย เบญจศรายุทธ น้อยอุบล
+
 Student ID: 67543210071-6
+
 Course: ENGSE207 Software Architecture
 
 ---
