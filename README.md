@@ -2,7 +2,10 @@
 
 # 📚 Library Management System (Midterm Bonus Project)
 
-ระบบจัดการห้องสมุดแบบ Full-Stack ที่ออกแบบตามมาตรฐาน **3-Layer Architecture** โดยทำงานภายใต้สภาพแวดล้อมจำลองแบบ Client-Server ผ่าน Virtual Machine (VM)
+📋 Project Information
+Student Name: นาย เบญจศรายุทธ น้อยอุบล
+Student ID: 67543210071-6
+Course: ENGSE207 Software Architecture
 
 ---
 
